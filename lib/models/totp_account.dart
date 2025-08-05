@@ -5,7 +5,7 @@ part 'totp_account.freezed.dart';
 part 'totp_account.g.dart';
 
 @freezed
-class TotpAccount with _$TotpAccount {
+abstract class TotpAccount with _$TotpAccount {
   const factory TotpAccount({
     required String id,
     required String issuer,
