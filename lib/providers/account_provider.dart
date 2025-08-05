@@ -1,109 +1,103 @@
+import 'dart:convert';
+import 'dart:io';
+
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:myapp/models/totp_account.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
-import 'dart:convert';
 
 class AccountProvider with ChangeNotifier {
-  List<TotpAccount> _accounts = [];
+  final List<TotpAccount> _accounts = [];
+  static const _prefsKey = 'totp_accounts';
 
   List<TotpAccount> get accounts => _accounts;
 
-  AccountProvider() {
-    _loadAccounts();
-  }
-
-  void addAccount(TotpAccount account) {
-    // 检查是否已经存在相同发行商和账户名的账户
-    bool exists = _accounts.any(
-      (a) => a.issuer == account.issuer && a.accountName == account.accountName,
+  Future<void> addAccount(TotpAccount account) async {
+    final existingAccount = _accounts.where(
+      (a) => a.issuer == account.issuer && a.name == account.name,
     );
-    if (exists) {
-      // TODO: 提示用户账户已存在，是否覆盖或取消
-      print(
-        "Account already exists: ${account.issuer} - ${account.accountName}",
-      );
+
+    if (existingAccount.isNotEmpty) {
+      if (kDebugMode) {
+        print("Account already exists: ${account.issuer} - ${account.name}");
+      }
       return;
     }
     _accounts.add(account);
-    _saveAccounts();
+    await _saveAccounts();
     notifyListeners();
   }
 
-  void removeAccount(TotpAccount account) {
-    _accounts.remove(account);
-    _saveAccounts();
-    notifyListeners();
+  Future<void> _saveAccounts() async {
+    final prefs = await SharedPreferences.getInstance();
+    final List<String> accountList =
+        _accounts.map((account) => jsonEncode(account.toJson())).toList();
+    await prefs.setStringList(_prefsKey, accountList);
   }
 
-  void _saveAccounts() async {
+  Future<void> loadAccounts() async {
     final prefs = await SharedPreferences.getInstance();
-    final accountListJson =
-        _accounts.map((account) => account.toJson()).toList();
-    prefs.setString('totp_accounts', jsonEncode(accountListJson));
-  }
-
-  void _loadAccounts() async {
-    final prefs = await SharedPreferences.getInstance();
-    final accountListJsonString = prefs.getString('totp_accounts');
-    if (accountListJsonString != null) {
-      try {
-        final accountListJson =
-            jsonDecode(accountListJsonString) as List<dynamic>;
-        _accounts =
-            accountListJson.map((json) => TotpAccount.fromJson(json)).toList();
-      } catch (e) {
-        print("Error loading accounts: $e");
-        // TODO: 处理加载错误，例如数据损坏，可以清空本地存储或提示用户
+    final List<String>? accountList = prefs.getStringList(_prefsKey);
+    if (accountList != null) {
+      _accounts.clear();
+      for (final String accountJson in accountList) {
+        _accounts.add(TotpAccount.fromJson(jsonDecode(accountJson)));
       }
       notifyListeners();
     }
   }
 
-  // 导出账户配置
-  Future<String> exportAccounts() async {
-    final accountListJson =
-        _accounts.map((account) => account.toJson()).toList();
-    return jsonEncode(accountListJson);
+  Future<void> deleteAccount(TotpAccount account) async {
+    _accounts.remove(account);
+    await _saveAccounts();
+    notifyListeners();
   }
 
-  // 导入账户配置
-  void importAccounts(String jsonString) {
+  Future<String?> exportAccounts() async {
     try {
-      final accountListJson = jsonDecode(jsonString) as List<dynamic>;
-      final importedAccounts =
-          accountListJson.map((json) => TotpAccount.fromJson(json)).toList();
+      final List<Map<String, dynamic>> exportData =
+          _accounts.map((account) => account.toJson()).toList();
+      final String jsonString = jsonEncode(exportData);
+      final Directory directory = await getApplicationDocumentsDirectory();
+      final String filePath = '${directory.path}/totp_accounts.json';
+      final File file = File(filePath);
+      await file.writeAsString(jsonString);
+      return filePath;
+    } catch (e) {
+      if (kDebugMode) {
+        print('Error exporting accounts: $e');
+      }
+      return null;
+    }
+  }
 
-      // 合并导入的账户，避免重复
-      for (var importedAccount in importedAccounts) {
-        bool exists = _accounts.any(
+  Future<void> importAccounts(File file) async {
+    try {
+      final String jsonString = await file.readAsString();
+      final List<dynamic> importData = jsonDecode(jsonString);
+      for (final dynamic item in importData) {
+        final TotpAccount importedAccount = TotpAccount.fromJson(item);
+        final bool accountExists = _accounts.any(
           (a) =>
               a.issuer == importedAccount.issuer &&
-              a.accountName == importedAccount.accountName,
+              a.name == importedAccount.name,
         );
-        if (!exists) {
+        if (!accountExists) {
           _accounts.add(importedAccount);
         } else {
-          // TODO: 提示用户有重复账户未导入或提供覆盖选项
-          print(
-            "Skipping duplicate account during import: ${importedAccount.issuer} - ${importedAccount.accountName}",
-          );
+          if (kDebugMode) {
+            print(
+                "Skipping duplicate account during import: ${importedAccount.issuer} - ${importedAccount.name}");
+          }
         }
       }
-
-      _saveAccounts();
+      await _saveAccounts();
       notifyListeners();
     } catch (e) {
-      print("Error importing accounts: $e");
-      // TODO: Handle import errors (e.g., show a dialog to the user)
+      if (kDebugMode) {
+        print('Error importing accounts: $e');
+      }
     }
-  }
-
-  // 清空所有账户 (用于开发或测试)
-  void clearAccounts() async {
-    final prefs = await SharedPreferences.getInstance();
-    prefs.remove('totp_accounts');
-    _accounts = [];
-    notifyListeners();
-    print("All accounts cleared.");
   }
 }

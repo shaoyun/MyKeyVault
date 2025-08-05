@@ -31,17 +31,17 @@ dependencies:
   flutter:
     sdk: flutter
   provider: ^6.0.5 # 或最新版本
-  mobile_scanner: ^3.3.1 # 或最新版本
+  mobile_scanner: ^7.0.1 # 或最新版本
   base32: ^2.1.2 # 或最新版本
   crypto: ^3.0.3 # 或最新版本
   uri: ^1.0.0 # 或最新版本
   path_provider: ^2.0.14 # 或最新版本
-  permission_handler: ^10.4.3 # 或最新版本
-  file_picker: ^5.2.0 # 或最新版本
+  permission_handler: ^12.0.1 # 或最新版本
+  file_picker: ^10.2.1 # 或最新版本
   shared_preferences: ^2.2.0 # 或最新版本
   json_annotation: ^4.8.1 # 或最新版本
   json_serializable: ^6.7.1 # 或最新版本
-  share_plus: ^7.0.2 # 或最新版本
+  share_plus: ^11.0.0 # 或最新版本
   cupertino_icons: ^1.0.8
   freezed_annotation: ^3.1.0
   otp: ^3.1.4
@@ -49,7 +49,7 @@ dependencies:
 dev_dependencies:
   flutter_test:
     sdk: flutter
-  flutter_lints: ^2.0.0
+  flutter_lints: ^5.0.0
   build_runner: ^2.4.6 # 或最新版本
 
 flutter:

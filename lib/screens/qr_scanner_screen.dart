@@ -1,8 +1,9 @@
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
-import 'package:myapp/utils/uri_parser.dart';
 import 'package:myapp/models/totp_account.dart';
-import 'package:myapp/widgets/add_account_screen.dart';
+import 'package:myapp/providers/account_provider.dart';
+import 'package:myapp/utils/uri_parser.dart';
+import 'package:provider/provider.dart';
 
 class QrScannerScreen extends StatefulWidget {
   const QrScannerScreen({super.key});
@@ -12,20 +13,13 @@ class QrScannerScreen extends StatefulWidget {
 }
 
 class _QrScannerScreenState extends State<QrScannerScreen> {
-  MobileScannerController cameraController = MobileScannerController();
-  bool _isProcessing = false; // 防止重复处理扫描结果
-
-  @override
-  void dispose() {
-    cameraController.dispose();
-    super.dispose();
-  }
+  final MobileScannerController cameraController = MobileScannerController();
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
       appBar: AppBar(
-        title: const Text('扫描二维码'),
+        title: const Text('Scan QR Code'),
         actions: [
           IconButton(
             color: Colors.white,
@@ -61,65 +55,42 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
           ),
         ],
       ),
-      body: Stack(
-        children: [
-          MobileScanner(
-            controller: cameraController,
-            onDetect: (capture) {
-              if (_isProcessing) return; // 避免重复处理
-
-              final List<Barcode> barcodes = capture.barcodes;
-              for (final barcode in barcodes) {
-                if (barcode.rawValue != null) {
-                  final String scannedValue = barcode.rawValue!;
-                  print('Barcode found! $scannedValue');
-
-                  // 尝试解析为 TOTP URI
-                  final TotpAccount? account = parseTotpUri(scannedValue);
-
-                  if (account != null) {
-                    _isProcessing = true; // 标记正在处理
-                    // 停止扫描并导航到添加账户界面
-                    cameraController.stop();
-                    Navigator.pushReplacement(
-                      context,
-                      MaterialPageRoute(
-                        builder: (context) => AddAccountScreen(initialAccount: account),
-                      ),
-                    );
-                    break; // 找到一个有效的 TOTP URI 就停止
-                  }
-                }
+      body: MobileScanner(
+        controller: cameraController,
+        onDetect: (capture) {
+          final List<Barcode> barcodes = capture.barcodes;
+          for (final barcode in barcodes) {
+            if (barcode.rawValue != null) {
+              final TotpAccount? account =
+                  UriParser.parse(barcode.rawValue!);
+              if (account != null) {
+                Provider.of<AccountProvider>(context, listen: false)
+                    .addAccount(account);
+                Navigator.pop(context);
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Account added successfully!'),
+                    duration: Duration(seconds: 2),
+                  ),
+                );
+              } else {
+                ScaffoldMessenger.of(context).showSnackBar(
+                  const SnackBar(
+                    content: Text('Invalid QR code.'),
+                    duration: Duration(seconds: 2),
+                  ),
+                );
               }
-            },
-          ),
-          // 添加一个扫描框叠加层（可选，提高用户体验）
-          Center(
-            child: Container(
-              width: 200,
-              height: 200,
-              decoration: BoxDecoration(
-                border: Border.all(color: Theme.of(context).colorScheme.secondary, width: 3),
-              ),
-            ),
-          ),
-          const Align(
-            alignment: Alignment.bottomCenter,
-            child: Padding(
-              padding: EdgeInsets.all(16.0),
-              child: Text(
-                '请将 TOTP 二维码放入扫描框内',
-                style: TextStyle(
-                  color: Colors.white,
-                  fontSize: 16,
-                  backgroundColor: Colors.black54,
-                ),
-                textAlign: TextAlign.center,
-              ),
-            ),
-          ),
-        ],
+            }
+          }
+        },
       ),
     );
+  }
+
+  @override
+  void dispose() {
+    cameraController.dispose();
+    super.dispose();
   }
 }
