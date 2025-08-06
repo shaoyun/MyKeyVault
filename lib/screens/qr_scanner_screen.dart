@@ -1,3 +1,5 @@
+import 'dart:async';
+import 'dart:developer';
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
 import 'package:myapp/models/totp_account.dart';
@@ -9,11 +11,21 @@ class QrScannerScreen extends StatefulWidget {
   const QrScannerScreen({super.key});
 
   @override
-  _QrScannerScreenState createState() => _QrScannerScreenState();
+  QrScannerScreenState createState() => QrScannerScreenState();
 }
 
-class _QrScannerScreenState extends State<QrScannerScreen> {
-  final MobileScannerController cameraController = MobileScannerController();
+class QrScannerScreenState extends State<QrScannerScreen> {
+  final MobileScannerController _controller = MobileScannerController(
+    detectionSpeed: DetectionSpeed.normal,
+    facing: CameraFacing.back,
+  );
+  bool _isProcessing = false;
+
+  @override
+  void initState() {
+    super.initState();
+    _controller.start();
+  }
 
   @override
   Widget build(BuildContext context) {
@@ -22,75 +34,96 @@ class _QrScannerScreenState extends State<QrScannerScreen> {
         title: const Text('Scan QR Code'),
         actions: [
           IconButton(
-            color: Colors.white,
-            icon: ValueListenableBuilder(
-              valueListenable: cameraController.torchState,
+            icon: ValueListenableBuilder<TorchState>(
+              valueListenable: _controller.torchState,
               builder: (context, state, child) {
                 switch (state) {
                   case TorchState.off:
                     return const Icon(Icons.flash_off, color: Colors.grey);
                   case TorchState.on:
                     return const Icon(Icons.flash_on, color: Colors.yellow);
+                  case TorchState.auto:
+                    return const Icon(Icons.flash_auto, color: Colors.grey);
                 }
               },
             ),
-            iconSize: 32.0,
-            onPressed: () => cameraController.toggleTorch(),
+            onPressed: () => _controller.toggleTorch(),
           ),
           IconButton(
-            color: Colors.white,
-            icon: ValueListenableBuilder(
-              valueListenable: cameraController.cameraFacingState,
+            icon: ValueListenableBuilder<CameraFacing>(
+              valueListenable: _controller.cameraFacingState,
               builder: (context, state, child) {
-                switch (state) {
-                  case CameraFacing.front:
-                    return const Icon(Icons.camera_front);
-                  case CameraFacing.back:
-                    return const Icon(Icons.camera_rear);
-                }
+                return state == CameraFacing.front
+                    ? const Icon(Icons.camera_front)
+                    : const Icon(Icons.camera_rear);
               },
             ),
-            iconSize: 32.0,
-            onPressed: () => cameraController.switchCamera(),
+            onPressed: () => _controller.switchCamera(),
           ),
         ],
       ),
       body: MobileScanner(
-        controller: cameraController,
+        controller: _controller,
         onDetect: (capture) {
-          final List<Barcode> barcodes = capture.barcodes;
-          for (final barcode in barcodes) {
-            if (barcode.rawValue != null) {
-              final TotpAccount? account =
-                  UriParser.parse(barcode.rawValue!);
-              if (account != null) {
-                Provider.of<AccountProvider>(context, listen: false)
-                    .addAccount(account);
-                Navigator.pop(context);
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Account added successfully!'),
-                    duration: Duration(seconds: 2),
-                  ),
-                );
-              } else {
-                ScaffoldMessenger.of(context).showSnackBar(
-                  const SnackBar(
-                    content: Text('Invalid QR code.'),
-                    duration: Duration(seconds: 2),
-                  ),
-                );
-              }
+          if (_isProcessing) return;
+
+          final String? value = capture.barcodes.first.rawValue;
+          if (value == null) {
+            log('Failed to scan QR code');
+            _showErrorSnackBar('Invalid QR code. Please try again.');
+            return;
+          }
+
+          setState(() {
+            _isProcessing = true;
+          });
+
+          try {
+            final TotpAccount? account = UriParser.parse(value);
+            if (account != null) {
+              Provider.of<AccountProvider>(context, listen: false)
+                  .addAccount(account);
+              Navigator.pop(context);
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('Account added successfully!'),
+                  duration: Duration(seconds: 2),
+                ),
+              );
+            } else {
+              _showErrorSnackBar('Invalid QR code format.');
             }
+          } catch (e) {
+            _showErrorSnackBar('An error occurred: ${e.toString()}');
+          } finally {
+            // Add a short delay before allowing another scan
+            Future.delayed(const Duration(seconds: 2), () {
+              if (mounted) {
+                setState(() {
+                  _isProcessing = false;
+                });
+              }
+            });
           }
         },
       ),
     );
   }
 
+  void _showErrorSnackBar(String message) {
+    if (!mounted) return;
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(message),
+        backgroundColor: Colors.red,
+        duration: const Duration(seconds: 2),
+      ),
+    );
+  }
+
   @override
   void dispose() {
-    cameraController.dispose();
+    _controller.dispose();
     super.dispose();
   }
 }
