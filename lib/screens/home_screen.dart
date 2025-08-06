@@ -8,72 +8,125 @@ import 'package:mykeyvault/providers/account_provider.dart';
 import 'package:mykeyvault/screens/qr_scanner_screen.dart';
 import 'package:mykeyvault/screens/manual_input_screen.dart';
 import 'package:mykeyvault/widgets/account_list_item.dart';
-import 'package:mykeyvault/utils/time_sync.dart';
+
 import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
 
-class HomeScreen extends StatelessWidget {
+class HomeScreen extends StatefulWidget {
   const HomeScreen({super.key});
+
+  @override
+  State<HomeScreen> createState() => _HomeScreenState();
+}
+
+class _HomeScreenState extends State<HomeScreen> {
+  final TextEditingController _searchController = TextEditingController();
+  String _searchQuery = '';
+
+  @override
+  void dispose() {
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  List<TotpAccount> _filterAccounts(List<TotpAccount> accounts) {
+    if (_searchQuery.isEmpty) {
+      return accounts;
+    }
+    
+    return accounts.where((account) {
+      final issuerMatch = account.issuer.toLowerCase().contains(_searchQuery.toLowerCase());
+      final nameMatch = account.name.toLowerCase().contains(_searchQuery.toLowerCase());
+      return issuerMatch || nameMatch;
+    }).toList();
+  }
 
   Future<void> _importAccounts(BuildContext context) async {
     final result = await FilePicker.platform.pickFiles();
-    if (result != null) {
-      final file = File(result.files.single.path!);
-      await Provider.of<AccountProvider>(context, listen: false)
-          .importAccounts(file);
+    if (result != null && result.files.isNotEmpty) {
+      final file = result.files.first;
+      
+      try {
+        if (kIsWeb) {
+          // Web平台：直接使用文件字节数据
+          if (file.bytes != null) {
+            await Provider.of<AccountProvider>(context, listen: false)
+                .importAccountsFromBytes(file.bytes!);
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('账户导入成功！'),
+                backgroundColor: Colors.green,
+              ),
+            );
+          } else {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('无法读取文件内容'),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
+        } else {
+          // 移动平台：使用文件路径
+          if (file.path != null) {
+            final ioFile = File(file.path!);
+            await Provider.of<AccountProvider>(context, listen: false)
+                .importAccounts(ioFile);
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('账户导入成功！'),
+                backgroundColor: Colors.green,
+              ),
+            );
+          } else {
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('无法访问文件路径'),
+                backgroundColor: Colors.red,
+              ),
+            );
+          }
+        }
+      } catch (e) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('导入失败：$e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
     }
   }
 
   Future<void> _exportAccounts(BuildContext context) async {
-    final filePath =
+    final result =
         await Provider.of<AccountProvider>(context, listen: false)
             .exportAccounts();
-    if (filePath != null) {
-      await Share.shareXFiles([XFile(filePath)],
-          text: 'TOTP Accounts Export');
+    if (result != null) {
+      if (kIsWeb) {
+        // Web平台：显示下载成功消息
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('配置文件已下载到浏览器默认下载文件夹'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      } else {
+        // 移动平台：使用分享功能
+        await Share.shareXFiles([XFile(result)],
+            text: 'TOTP Accounts Export');
+      }
+    } else {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('导出失败，请重试'),
+          backgroundColor: Colors.red,
+        ),
+      );
     }
   }
 
-  void _showTimeInfo(BuildContext context) {
-    final info = TimeSync.getTimeDifferenceInfo();
-    
-    showDialog(
-      context: context,
-      builder: (context) => AlertDialog(
-        title: const Text('时间信息'),
-        content: SingleChildScrollView(
-          child: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              const Text('TOTP使用UTC时间确保全球一致性'),
-              const SizedBox(height: 12),
-              Text('本地时间: ${info['localTime']}', 
-                   style: const TextStyle(fontSize: 12)),
-              Text('时区: ${info['timezone']} (UTC${info['timezoneOffset'] >= 0 ? '+' : ''}${info['timezoneOffset']})', 
-                   style: const TextStyle(fontSize: 12)),
-              const SizedBox(height: 8),
-              Text('UTC时间: ${info['utcTime']}', 
-                   style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
-              Text('UTC时间戳: ${info['timestamp']}', 
-                   style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
-              const SizedBox(height: 8),
-              Text('当前30秒周期内: ${info['timeInCurrentPeriod']}秒', 
-                   style: const TextStyle(fontSize: 12)),
-              Text('下次更新倒计时: ${info['nextPeriodIn']}秒', 
-                   style: const TextStyle(fontSize: 12)),
-            ],
-          ),
-        ),
-        actions: [
-          TextButton(
-            onPressed: () => Navigator.pop(context),
-            child: const Text('确定'),
-          ),
-        ],
-      ),
-    );
-  }
+
 
   void _showAddAccountOptions(BuildContext context) {
     showModalBottomSheet(
@@ -148,6 +201,7 @@ class HomeScreen extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     final accountProvider = Provider.of<AccountProvider>(context);
+    final filteredAccounts = _filterAccounts(accountProvider.accounts);
 
     return Scaffold(
       appBar: AppBar(
@@ -159,8 +213,6 @@ class HomeScreen extends StatelessWidget {
                 _importAccounts(context);
               } else if (value == 'export') {
                 _exportAccounts(context);
-              } else if (value == 'time_info') {
-                _showTimeInfo(context);
               }
             },
             itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
@@ -184,36 +236,100 @@ class HomeScreen extends StatelessWidget {
                   ],
                 ),
               ),
-              const PopupMenuDivider(),
-              const PopupMenuItem<String>(
-                value: 'time_info',
-                child: Row(
-                  children: [
-                    Icon(Icons.access_time),
-                    SizedBox(width: 12),
-                    Text('时间信息'),
-                  ],
-                ),
-              ),
             ],
           ),
         ],
       ),
-      body: accountProvider.accounts.isEmpty
-          ? const Center(
-              child: Text(
-                'No accounts found. Add one to get started.',
-                textAlign: TextAlign.center,
-                style: TextStyle(fontSize: 18, color: Colors.grey),
+      body: Column(
+        children: [
+          // 搜索框
+          if (accountProvider.accounts.isNotEmpty)
+            Container(
+              padding: const EdgeInsets.all(16),
+              color: Theme.of(context).scaffoldBackgroundColor,
+              child: TextField(
+                controller: _searchController,
+                onChanged: (value) {
+                  setState(() {
+                    _searchQuery = value;
+                  });
+                },
+                decoration: InputDecoration(
+                  hintText: '搜索',
+                  prefixIcon: const Icon(Icons.search),
+                  suffixIcon: _searchQuery.isNotEmpty
+                      ? IconButton(
+                          icon: const Icon(Icons.clear),
+                          onPressed: () {
+                            setState(() {
+                              _searchController.clear();
+                              _searchQuery = '';
+                            });
+                          },
+                        )
+                      : null,
+                  border: OutlineInputBorder(
+                    borderRadius: BorderRadius.circular(25),
+                    borderSide: BorderSide.none,
+                  ),
+                  filled: true,
+                  fillColor: Colors.grey[100],
+                  contentPadding: const EdgeInsets.symmetric(
+                    horizontal: 20,
+                    vertical: 12,
+                  ),
+                ),
               ),
-            )
-          : ListView.builder(
-              itemCount: accountProvider.accounts.length,
-              itemBuilder: (context, index) {
-                final account = accountProvider.accounts[index];
-                return AccountListItem(account: account);
-              },
             ),
+          // 账户列表
+          Expanded(
+            child: accountProvider.accounts.isEmpty
+                ? const Center(
+                    child: Text(
+                      'No accounts found. Add one to get started.',
+                      textAlign: TextAlign.center,
+                      style: TextStyle(fontSize: 18, color: Colors.grey),
+                    ),
+                  )
+                : filteredAccounts.isEmpty && _searchQuery.isNotEmpty
+                    ? Center(
+                        child: Column(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(
+                              Icons.search_off,
+                              size: 64,
+                              color: Colors.grey[400],
+                            ),
+                            const SizedBox(height: 16),
+                            Text(
+                              '未找到匹配的账户',
+                              style: TextStyle(
+                                fontSize: 18,
+                                color: Colors.grey[600],
+                              ),
+                            ),
+                            const SizedBox(height: 8),
+                            Text(
+                              '尝试搜索发行方或账户名',
+                              style: TextStyle(
+                                fontSize: 14,
+                                color: Colors.grey[500],
+                              ),
+                            ),
+                          ],
+                        ),
+                      )
+                    : ListView.builder(
+                        itemCount: filteredAccounts.length,
+                        itemBuilder: (context, index) {
+                          final account = filteredAccounts[index];
+                          return AccountListItem(account: account);
+                        },
+                      ),
+          ),
+        ],
+      ),
       floatingActionButton: FloatingActionButton(
         onPressed: () => _showAddAccountOptions(context),
         child: const Icon(Icons.add),

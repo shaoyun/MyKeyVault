@@ -1,5 +1,4 @@
 import 'package:freezed_annotation/freezed_annotation.dart';
-import 'package:otp/otp.dart';
 
 part 'totp_account.freezed.dart';
 part 'totp_account.g.dart';
@@ -11,6 +10,7 @@ abstract class TotpAccount with _$TotpAccount {
     required String issuer,
     required String name,
     required String secret,
+    @Default('default') String colorType,
   }) = _TotpAccount;
 
   factory TotpAccount.fromJson(Map<String, dynamic> json) =>

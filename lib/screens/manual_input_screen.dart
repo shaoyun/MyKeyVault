@@ -15,6 +15,7 @@ class _ManualInputScreenState extends State<ManualInputScreen> {
   final _issuerController = TextEditingController();
   final _nameController = TextEditingController();
   final _secretController = TextEditingController();
+  String _selectedColorType = 'default';
   bool _isLoading = false;
 
   @override
@@ -40,6 +41,7 @@ class _ManualInputScreenState extends State<ManualInputScreen> {
         issuer: _issuerController.text.trim(),
         name: _nameController.text.trim(),
         secret: _secretController.text.trim().replaceAll(' ', '').toUpperCase(),
+        colorType: _selectedColorType,
       );
 
       await Provider.of<AccountProvider>(context, listen: false)

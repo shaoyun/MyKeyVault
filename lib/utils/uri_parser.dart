@@ -12,10 +12,22 @@ class UriParser {
       final issuer = uri.queryParameters['issuer'] ?? '';
       final secret = uri.queryParameters['secret'];
       final pathSegments = uri.pathSegments;
-      final String name;
+      String name;
 
       if (pathSegments.isNotEmpty) {
-        name = pathSegments.first.trim();
+        String rawName = pathSegments.first.trim();
+        
+        // 如果path包含 "issuer:" 前缀，去除它以提取真正的账户名
+        if (issuer.isNotEmpty && rawName.startsWith('$issuer:')) {
+          name = rawName.substring(issuer.length + 1);
+        } else {
+          name = rawName;
+        }
+        
+        // 处理边缘情况：如果name只是一个冒号或为空，尝试使用完整的path
+        if (name == ':' || name.isEmpty) {
+          name = rawName;
+        }
       } else {
         name = '';
       }
@@ -29,6 +41,7 @@ class UriParser {
         issuer: issuer,
         name: name,
         secret: secret,
+        colorType: 'default',
       );
     } catch (e) {
       return null;

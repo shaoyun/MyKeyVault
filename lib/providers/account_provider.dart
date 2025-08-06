@@ -1,5 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
+import 'dart:html' as html;
+import 'dart:typed_data';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
@@ -68,11 +70,29 @@ class AccountProvider with ChangeNotifier {
       final List<Map<String, dynamic>> exportData =
           _accounts.map((account) => account.toJson()).toList();
       final String jsonString = jsonEncode(exportData);
-      final Directory directory = await getApplicationDocumentsDirectory();
-      final String filePath = '${directory.path}/totp_accounts.json';
-      final File file = File(filePath);
-      await file.writeAsString(jsonString);
-      return filePath;
+      
+      if (kIsWeb) {
+        // Web平台：使用浏览器下载
+        final bytes = utf8.encode(jsonString);
+        final blob = html.Blob([bytes]);
+        final url = html.Url.createObjectUrlFromBlob(blob);
+        final anchor = html.document.createElement('a') as html.AnchorElement
+          ..href = url
+          ..style.display = 'none'
+          ..download = 'totp_accounts.json';
+        html.document.body?.children.add(anchor);
+        anchor.click();
+        html.document.body?.children.remove(anchor);
+        html.Url.revokeObjectUrl(url);
+        return 'web_download'; // 返回特殊标识符表示成功
+      } else {
+        // 移动平台：使用文件系统
+        final Directory directory = await getApplicationDocumentsDirectory();
+        final String filePath = '${directory.path}/totp_accounts.json';
+        final File file = File(filePath);
+        await file.writeAsString(jsonString);
+        return filePath;
+      }
     } catch (e) {
       if (kDebugMode) {
         print('Error exporting accounts: $e');
@@ -84,7 +104,32 @@ class AccountProvider with ChangeNotifier {
   Future<void> importAccounts(File file) async {
     try {
       final String jsonString = await file.readAsString();
+      await _processImportData(jsonString);
+    } catch (e) {
+      if (kDebugMode) {
+        print('Error importing accounts from file: $e');
+      }
+      rethrow;
+    }
+  }
+
+  Future<void> importAccountsFromBytes(Uint8List bytes) async {
+    try {
+      final String jsonString = utf8.decode(bytes);
+      await _processImportData(jsonString);
+    } catch (e) {
+      if (kDebugMode) {
+        print('Error importing accounts from bytes: $e');
+      }
+      rethrow;
+    }
+  }
+
+  Future<void> _processImportData(String jsonString) async {
+    try {
       final List<dynamic> importData = jsonDecode(jsonString);
+      int importedCount = 0;
+      
       for (final dynamic item in importData) {
         final TotpAccount importedAccount = TotpAccount.fromJson(item);
         final bool accountExists = _accounts.any(
@@ -94,6 +139,7 @@ class AccountProvider with ChangeNotifier {
         );
         if (!accountExists) {
           _accounts.add(importedAccount);
+          importedCount++;
         } else {
           if (kDebugMode) {
             print(
@@ -101,12 +147,18 @@ class AccountProvider with ChangeNotifier {
           }
         }
       }
+      
       await _saveAccounts();
       notifyListeners();
+      
+      if (kDebugMode) {
+        print('Successfully imported $importedCount accounts');
+      }
     } catch (e) {
       if (kDebugMode) {
-        print('Error importing accounts: $e');
+        print('Error processing import data: $e');
       }
+      rethrow;
     }
   }
 }
