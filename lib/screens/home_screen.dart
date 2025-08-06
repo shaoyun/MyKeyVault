@@ -41,17 +41,29 @@ class HomeScreen extends StatelessWidget {
       context: context,
       builder: (context) => AlertDialog(
         title: const Text('时间信息'),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            const Text('使用本机UTC时间'),
-            const SizedBox(height: 8),
-            Text('当前UTC时间: ${info['utcTime']}', 
-                 style: const TextStyle(fontSize: 12)),
-            Text('时间戳: ${info['timestamp']}', 
-                 style: const TextStyle(fontSize: 12)),
-          ],
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              const Text('TOTP使用UTC时间确保全球一致性'),
+              const SizedBox(height: 12),
+              Text('本地时间: ${info['localTime']}', 
+                   style: const TextStyle(fontSize: 12)),
+              Text('时区: ${info['timezone']} (UTC${info['timezoneOffset'] >= 0 ? '+' : ''}${info['timezoneOffset']})', 
+                   style: const TextStyle(fontSize: 12)),
+              const SizedBox(height: 8),
+              Text('UTC时间: ${info['utcTime']}', 
+                   style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+              Text('UTC时间戳: ${info['timestamp']}', 
+                   style: const TextStyle(fontSize: 12, fontWeight: FontWeight.bold)),
+              const SizedBox(height: 8),
+              Text('当前30秒周期内: ${info['timeInCurrentPeriod']}秒', 
+                   style: const TextStyle(fontSize: 12)),
+              Text('下次更新倒计时: ${info['nextPeriodIn']}秒', 
+                   style: const TextStyle(fontSize: 12)),
+            ],
+          ),
         ),
         actions: [
           TextButton(

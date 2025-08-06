@@ -50,13 +50,12 @@ class _AccountListItemState extends State<AccountListItem> {
     // 使用同步后的秒级时间戳，TOTP标准要求使用秒级时间戳
     final syncedTimestampSeconds = TimeSync.getSyncedTimestampSeconds();
     
-    // 使用毫秒时间戳生成TOTP
-    final syncedTimestampMillis = syncedTimestampSeconds * 1000;
+    // OTP库的generateTOTPCodeString方法期望秒级时间戳，不是毫秒
     _currentOtp = OTP.generateTOTPCodeString(
-        widget.account.secret, syncedTimestampMillis, length: 6, interval: 30);
+        widget.account.secret, syncedTimestampSeconds, length: 6, interval: 30);
         
     if (kDebugMode) {
-      print('TOTP Debug - Account: ${widget.account.name}, Timestamp: $syncedTimestampSeconds, Code: $_currentOtp');
+      print('TOTP Debug - Account: ${widget.account.name}, UTC Timestamp: $syncedTimestampSeconds, Code: $_currentOtp');
     }
   }
 

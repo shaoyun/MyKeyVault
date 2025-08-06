@@ -15,13 +15,21 @@ class TimeSync {
   static Map<String, dynamic> getTimeDifferenceInfo() {
     final now = DateTime.now();
     final utcNow = now.toUtc();
+    final timestampSeconds = getSyncedTimestampSeconds();
+    final timeInPeriod = timestampSeconds % 30;
+    final nextPeriodIn = 30 - timeInPeriod;
+    
     return {
       'hasTimeDifference': false,
       'timeDifferenceSeconds': 0,
       'localTime': now.toIso8601String(),
       'utcTime': utcNow.toIso8601String(),
       'syncedTime': utcNow.toIso8601String(),
-      'timestamp': getSyncedTimestampSeconds(),
+      'timestamp': timestampSeconds,
+      'timeInCurrentPeriod': timeInPeriod,
+      'nextPeriodIn': nextPeriodIn,
+      'timezone': now.timeZoneName,
+      'timezoneOffset': now.timeZoneOffset.inHours,
     };
   }
 }
