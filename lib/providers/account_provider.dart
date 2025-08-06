@@ -1,11 +1,11 @@
 import 'dart:convert';
 import 'dart:io';
-import 'dart:html' as html;
 import 'dart:typed_data';
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:mykeyvault/models/totp_account.dart';
+import 'package:mykeyvault/utils/file_download.dart' as file_download;
 import 'package:path_provider/path_provider.dart';
 import 'package:shared_preferences/shared_preferences.dart';
 
@@ -71,28 +71,8 @@ class AccountProvider with ChangeNotifier {
           _accounts.map((account) => account.toJson()).toList();
       final String jsonString = jsonEncode(exportData);
       
-      if (kIsWeb) {
-        // Web平台：使用浏览器下载
-        final bytes = utf8.encode(jsonString);
-        final blob = html.Blob([bytes]);
-        final url = html.Url.createObjectUrlFromBlob(blob);
-        final anchor = html.document.createElement('a') as html.AnchorElement
-          ..href = url
-          ..style.display = 'none'
-          ..download = 'totp_accounts.json';
-        html.document.body?.children.add(anchor);
-        anchor.click();
-        html.document.body?.children.remove(anchor);
-        html.Url.revokeObjectUrl(url);
-        return 'web_download'; // 返回特殊标识符表示成功
-      } else {
-        // 移动平台：使用文件系统
-        final Directory directory = await getApplicationDocumentsDirectory();
-        final String filePath = '${directory.path}/totp_accounts.json';
-        final File file = File(filePath);
-        await file.writeAsString(jsonString);
-        return filePath;
-      }
+      // 使用平台特定的文件下载实现
+      return await file_download.downloadFile(jsonString, 'totp_accounts.json');
     } catch (e) {
       if (kDebugMode) {
         print('Error exporting accounts: $e');
