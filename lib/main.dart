@@ -3,10 +3,14 @@ import 'package:provider/provider.dart';
 import 'package:myapp/providers/account_provider.dart';
 import 'package:myapp/screens/home_screen.dart'; // 将 MyHomePage 改名为 HomeScreen
 
-void main() {
+void main() async {
+  WidgetsFlutterBinding.ensureInitialized();
+  final accountProvider = AccountProvider();
+  await accountProvider.loadAccounts();
+  
   runApp(
     ChangeNotifierProvider(
-      create: (context) => AccountProvider(),
+      create: (context) => accountProvider,
       child: const MyApp(),
     ),
   );
