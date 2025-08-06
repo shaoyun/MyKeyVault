@@ -1,5 +1,6 @@
 import 'dart:async';
 
+import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:myapp/models/totp_account.dart';
@@ -46,10 +47,17 @@ class _AccountListItemState extends State<AccountListItem> {
   }
 
   void _generateOtp() {
-    // 使用同步后的时间戳，确保跨时区和虚拟机环境的一致性
-    final syncedTimestamp = TimeSync.getSyncedTimestamp();
+    // 使用同步后的秒级时间戳，TOTP标准要求使用秒级时间戳
+    final syncedTimestampSeconds = TimeSync.getSyncedTimestampSeconds();
+    
+    // 使用毫秒时间戳生成TOTP
+    final syncedTimestampMillis = syncedTimestampSeconds * 1000;
     _currentOtp = OTP.generateTOTPCodeString(
-        widget.account.secret, syncedTimestamp, length: 6, interval: 30);
+        widget.account.secret, syncedTimestampMillis, length: 6, interval: 30);
+        
+    if (kDebugMode) {
+      print('TOTP Debug - Account: ${widget.account.name}, Timestamp: $syncedTimestampSeconds, Code: $_currentOtp');
+    }
   }
 
   @override

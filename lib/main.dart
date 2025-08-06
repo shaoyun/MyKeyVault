@@ -11,8 +11,7 @@ void main() async {
   final accountProvider = AccountProvider();
   await accountProvider.loadAccounts();
   
-  // 尝试同步网络时间（不阻塞应用启动）
-  TimeSync.syncTime();
+  // 时间同步已简化为使用本机时间
   
   runApp(
     ChangeNotifierProvider(

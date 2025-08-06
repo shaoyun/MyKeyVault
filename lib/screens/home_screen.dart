@@ -34,54 +34,33 @@ class HomeScreen extends StatelessWidget {
     }
   }
 
-  Future<void> _syncTime(BuildContext context) async {
-    // 显示加载对话框
+  void _showTimeInfo(BuildContext context) {
+    final info = TimeSync.getTimeDifferenceInfo();
+    
     showDialog(
       context: context,
-      barrierDismissible: false,
-      builder: (context) => const AlertDialog(
-        content: Row(
+      builder: (context) => AlertDialog(
+        title: const Text('时间信息'),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
           children: [
-            CircularProgressIndicator(),
-            SizedBox(width: 20),
-            Text('正在同步时间...'),
+            const Text('使用本机UTC时间'),
+            const SizedBox(height: 8),
+            Text('当前UTC时间: ${info['utcTime']}', 
+                 style: const TextStyle(fontSize: 12)),
+            Text('时间戳: ${info['timestamp']}', 
+                 style: const TextStyle(fontSize: 12)),
           ],
         ),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('确定'),
+          ),
+        ],
       ),
     );
-
-    final success = await TimeSync.syncTime();
-    
-    if (context.mounted) {
-      Navigator.pop(context); // 关闭加载对话框
-      
-      final info = TimeSync.getTimeDifferenceInfo();
-      
-      showDialog(
-        context: context,
-        builder: (context) => AlertDialog(
-          title: Text(success ? '时间同步成功' : '时间同步失败'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            crossAxisAlignment: CrossAxisAlignment.start,
-            children: [
-              Text(success ? '网络时间已同步' : '使用本地时间'),
-              if (success && info['timeDifferenceSeconds'] != 0)
-                Text('时间差: ${info['timeDifferenceSeconds']}秒'),
-              const SizedBox(height: 8),
-              Text('当前同步时间: ${info['syncedTime']}', 
-                   style: const TextStyle(fontSize: 12)),
-            ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: () => Navigator.pop(context),
-              child: const Text('确定'),
-            ),
-          ],
-        ),
-      );
-    }
   }
 
   void _showAddAccountOptions(BuildContext context) {
@@ -168,8 +147,8 @@ class HomeScreen extends StatelessWidget {
                 _importAccounts(context);
               } else if (value == 'export') {
                 _exportAccounts(context);
-              } else if (value == 'sync_time') {
-                _syncTime(context);
+              } else if (value == 'time_info') {
+                _showTimeInfo(context);
               }
             },
             itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
@@ -195,12 +174,12 @@ class HomeScreen extends StatelessWidget {
               ),
               const PopupMenuDivider(),
               const PopupMenuItem<String>(
-                value: 'sync_time',
+                value: 'time_info',
                 child: Row(
                   children: [
-                    Icon(Icons.sync),
+                    Icon(Icons.access_time),
                     SizedBox(width: 12),
-                    Text('同步时间'),
+                    Text('时间信息'),
                   ],
                 ),
               ),
