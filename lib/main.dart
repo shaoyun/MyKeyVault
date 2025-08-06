@@ -24,8 +24,10 @@ class MyApp extends StatelessWidget {
 
     final lightTheme = ThemeData(
       useMaterial3: true,
+      brightness: Brightness.light,
       colorScheme: ColorScheme.fromSeed(
         seedColor: primarySeedColor,
+        brightness: Brightness.light,
         primary: primarySeedColor,
         secondary: secondaryColor,
         surface: Colors.white,
@@ -60,6 +62,7 @@ class MyApp extends StatelessWidget {
       brightness: Brightness.dark,
       colorScheme: ColorScheme.fromSeed(
         seedColor: primarySeedColor,
+        brightness: Brightness.dark,
         primary: secondaryColor, // 深色模式下，紫色作为主色可能更突出
         secondary: primarySeedColor,
         surface: Color(0xFF424242), // 更深的灰色作为表面
