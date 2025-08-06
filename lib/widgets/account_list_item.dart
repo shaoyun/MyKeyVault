@@ -5,6 +5,7 @@ import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 import 'package:mykeyvault/models/totp_account.dart';
 import 'package:mykeyvault/providers/account_provider.dart';
+import 'package:mykeyvault/screens/edit_account_screen.dart';
 import 'package:mykeyvault/utils/time_sync.dart';
 import 'package:otp/otp.dart';
 import 'package:provider/provider.dart';
@@ -59,6 +60,129 @@ class _AccountListItemState extends State<AccountListItem> {
     }
   }
 
+  void _showAccountOptions(BuildContext context) {
+    showModalBottomSheet(
+      context: context,
+      builder: (BuildContext context) {
+        return Container(
+          padding: const EdgeInsets.all(20),
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Container(
+                width: 40,
+                height: 4,
+                decoration: BoxDecoration(
+                  color: Colors.grey[300],
+                  borderRadius: BorderRadius.circular(2),
+                ),
+              ),
+              const SizedBox(height: 20),
+              Text(
+                '${widget.account.name}',
+                style: const TextStyle(
+                  fontSize: 18,
+                  fontWeight: FontWeight.bold,
+                ),
+              ),
+              Text(
+                '${widget.account.issuer}',
+                style: TextStyle(
+                  fontSize: 14,
+                  color: Colors.grey[600],
+                ),
+              ),
+              const SizedBox(height: 20),
+              ListTile(
+                leading: const Icon(
+                  Icons.edit,
+                  color: Colors.blue,
+                  size: 28,
+                ),
+                title: const Text('编辑账户'),
+                subtitle: const Text('修改账户信息和密钥'),
+                onTap: () {
+                  Navigator.pop(context);
+                  Navigator.push(
+                    context,
+                    MaterialPageRoute(
+                      builder: (context) => EditAccountScreen(account: widget.account),
+                    ),
+                  );
+                },
+              ),
+              ListTile(
+                leading: const Icon(
+                  Icons.copy,
+                  color: Colors.green,
+                  size: 28,
+                ),
+                title: const Text('复制验证码'),
+                subtitle: Text('复制当前验证码：$_currentOtp'),
+                onTap: () {
+                  Navigator.pop(context);
+                  Clipboard.setData(ClipboardData(text: _currentOtp));
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(
+                      content: Text('验证码已复制到剪贴板！'),
+                      duration: Duration(seconds: 1),
+                    ),
+                  );
+                },
+              ),
+              ListTile(
+                leading: const Icon(
+                  Icons.delete,
+                  color: Colors.red,
+                  size: 28,
+                ),
+                title: const Text('删除账户'),
+                subtitle: const Text('永久删除此账户'),
+                onTap: () {
+                  Navigator.pop(context);
+                  _showDeleteConfirmation(context);
+                },
+              ),
+              const SizedBox(height: 20),
+            ],
+          ),
+        );
+      },
+    );
+  }
+
+  void _showDeleteConfirmation(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('删除账户'),
+        content: Text(
+            '确定要删除 ${widget.account.name} (${widget.account.issuer}) 吗？\n\n此操作无法撤销。'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.pop(context),
+            child: const Text('取消'),
+          ),
+          TextButton(
+            onPressed: () {
+              Provider.of<AccountProvider>(context, listen: false)
+                  .deleteAccount(widget.account);
+              Navigator.pop(context);
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('账户已删除'),
+                  backgroundColor: Colors.orange,
+                ),
+              );
+            },
+            style: TextButton.styleFrom(foregroundColor: Colors.red),
+            child: const Text('删除'),
+          ),
+        ],
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     return Card(
@@ -95,35 +219,15 @@ class _AccountListItemState extends State<AccountListItem> {
         onTap: () {
           Clipboard.setData(ClipboardData(text: _currentOtp));
           ScaffoldMessenger.of(context).showSnackBar(
-            const SnackBar(
-              content: Text('Copied to clipboard!'),
-              duration: Duration(seconds: 1),
+            SnackBar(
+              content: Text('验证码 $_currentOtp 已复制到剪贴板！'),
+              duration: const Duration(seconds: 2),
+              backgroundColor: Colors.green,
             ),
           );
         },
         onLongPress: () {
-          showDialog(
-            context: context,
-            builder: (context) => AlertDialog(
-              title: const Text('Delete Account'),
-              content: Text(
-                  'Are you sure you want to delete ${widget.account.name} (${widget.account.issuer})?'),
-              actions: [
-                TextButton(
-                  onPressed: () => Navigator.pop(context),
-                  child: const Text('Cancel'),
-                ),
-                TextButton(
-                  onPressed: () {
-                    Provider.of<AccountProvider>(context, listen: false)
-                        .deleteAccount(widget.account);
-                    Navigator.pop(context);
-                  },
-                  child: const Text('Delete'),
-                ),
-              ],
-            ),
-          );
+          _showAccountOptions(context);
         },
       ),
     );

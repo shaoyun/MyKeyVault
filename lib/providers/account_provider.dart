@@ -54,6 +54,15 @@ class AccountProvider with ChangeNotifier {
     notifyListeners();
   }
 
+  Future<void> updateAccount(TotpAccount oldAccount, TotpAccount newAccount) async {
+    final index = _accounts.indexOf(oldAccount);
+    if (index != -1) {
+      _accounts[index] = newAccount;
+      await _saveAccounts();
+      notifyListeners();
+    }
+  }
+
   Future<String?> exportAccounts() async {
     try {
       final List<Map<String, dynamic>> exportData =
