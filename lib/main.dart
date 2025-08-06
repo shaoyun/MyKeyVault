@@ -2,11 +2,17 @@ import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:myapp/providers/account_provider.dart';
 import 'package:myapp/screens/home_screen.dart'; // 将 MyHomePage 改名为 HomeScreen
+import 'package:myapp/utils/time_sync.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
+  
+  // 初始化账户提供者
   final accountProvider = AccountProvider();
   await accountProvider.loadAccounts();
+  
+  // 尝试同步网络时间（不阻塞应用启动）
+  TimeSync.syncTime();
   
   runApp(
     ChangeNotifierProvider(

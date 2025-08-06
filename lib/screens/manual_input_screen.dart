@@ -112,7 +112,7 @@ class _ManualInputScreenState extends State<ManualInputScreen> {
           ),
         ],
       ),
-      body: Padding(
+      body: SingleChildScrollView(
         padding: const EdgeInsets.all(16.0),
         child: Form(
           key: _formKey,
@@ -225,7 +225,7 @@ class _ManualInputScreenState extends State<ManualInputScreen> {
                   ),
                 ),
               ),
-              const Spacer(),
+              const SizedBox(height: 32),
               ElevatedButton(
                 onPressed: _isLoading ? null : _saveAccount,
                 style: ElevatedButton.styleFrom(
@@ -247,6 +247,7 @@ class _ManualInputScreenState extends State<ManualInputScreen> {
                       )
                     : const Text('保存账户'),
               ),
+              const SizedBox(height: 32), // 底部额外间距
             ],
           ),
         ),

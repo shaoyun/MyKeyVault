@@ -8,6 +8,7 @@ import 'package:myapp/providers/account_provider.dart';
 import 'package:myapp/screens/qr_scanner_screen.dart';
 import 'package:myapp/screens/manual_input_screen.dart';
 import 'package:myapp/widgets/account_list_item.dart';
+import 'package:myapp/utils/time_sync.dart';
 import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
 
@@ -30,6 +31,56 @@ class HomeScreen extends StatelessWidget {
     if (filePath != null) {
       await Share.shareXFiles([XFile(filePath)],
           text: 'TOTP Accounts Export');
+    }
+  }
+
+  Future<void> _syncTime(BuildContext context) async {
+    // 显示加载对话框
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (context) => const AlertDialog(
+        content: Row(
+          children: [
+            CircularProgressIndicator(),
+            SizedBox(width: 20),
+            Text('正在同步时间...'),
+          ],
+        ),
+      ),
+    );
+
+    final success = await TimeSync.syncTime();
+    
+    if (context.mounted) {
+      Navigator.pop(context); // 关闭加载对话框
+      
+      final info = TimeSync.getTimeDifferenceInfo();
+      
+      showDialog(
+        context: context,
+        builder: (context) => AlertDialog(
+          title: Text(success ? '时间同步成功' : '时间同步失败'),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            crossAxisAlignment: CrossAxisAlignment.start,
+            children: [
+              Text(success ? '网络时间已同步' : '使用本地时间'),
+              if (success && info['timeDifferenceSeconds'] != 0)
+                Text('时间差: ${info['timeDifferenceSeconds']}秒'),
+              const SizedBox(height: 8),
+              Text('当前同步时间: ${info['syncedTime']}', 
+                   style: const TextStyle(fontSize: 12)),
+            ],
+          ),
+          actions: [
+            TextButton(
+              onPressed: () => Navigator.pop(context),
+              child: const Text('确定'),
+            ),
+          ],
+        ),
+      );
     }
   }
 
@@ -117,16 +168,41 @@ class HomeScreen extends StatelessWidget {
                 _importAccounts(context);
               } else if (value == 'export') {
                 _exportAccounts(context);
+              } else if (value == 'sync_time') {
+                _syncTime(context);
               }
             },
             itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
               const PopupMenuItem<String>(
                 value: 'import',
-                child: Text('Import Accounts'),
+                child: Row(
+                  children: [
+                    Icon(Icons.file_download),
+                    SizedBox(width: 12),
+                    Text('导入账户'),
+                  ],
+                ),
               ),
               const PopupMenuItem<String>(
                 value: 'export',
-                child: Text('Export Accounts'),
+                child: Row(
+                  children: [
+                    Icon(Icons.file_upload),
+                    SizedBox(width: 12),
+                    Text('导出账户'),
+                  ],
+                ),
+              ),
+              const PopupMenuDivider(),
+              const PopupMenuItem<String>(
+                value: 'sync_time',
+                child: Row(
+                  children: [
+                    Icon(Icons.sync),
+                    SizedBox(width: 12),
+                    Text('同步时间'),
+                  ],
+                ),
               ),
             ],
           ),
