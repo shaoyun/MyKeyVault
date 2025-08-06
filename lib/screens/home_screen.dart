@@ -3,12 +3,12 @@ import 'dart:io';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:file_picker/file_picker.dart';
-import 'package:myapp/models/totp_account.dart';
-import 'package:myapp/providers/account_provider.dart';
-import 'package:myapp/screens/qr_scanner_screen.dart';
-import 'package:myapp/screens/manual_input_screen.dart';
-import 'package:myapp/widgets/account_list_item.dart';
-import 'package:myapp/utils/time_sync.dart';
+import 'package:mykeyvault/models/totp_account.dart';
+import 'package:mykeyvault/providers/account_provider.dart';
+import 'package:mykeyvault/screens/qr_scanner_screen.dart';
+import 'package:mykeyvault/screens/manual_input_screen.dart';
+import 'package:mykeyvault/widgets/account_list_item.dart';
+import 'package:mykeyvault/utils/time_sync.dart';
 import 'package:provider/provider.dart';
 import 'package:share_plus/share_plus.dart';
 
@@ -139,7 +139,7 @@ class HomeScreen extends StatelessWidget {
 
     return Scaffold(
       appBar: AppBar(
-        title: const Text('Authenticator'),
+        title: const Text('MyKeyVault'),
         actions: [
           PopupMenuButton<String>(
             onSelected: (value) {

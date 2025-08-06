@@ -1,6 +1,6 @@
 import 'package:flutter/material.dart';
-import 'package:myapp/models/totp_account.dart';
-import 'package:myapp/providers/account_provider.dart';
+import 'package:mykeyvault/models/totp_account.dart';
+import 'package:mykeyvault/providers/account_provider.dart';
 import 'package:provider/provider.dart';
 
 class ManualInputScreen extends StatefulWidget {

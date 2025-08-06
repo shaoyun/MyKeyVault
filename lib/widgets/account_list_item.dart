@@ -3,9 +3,9 @@ import 'dart:async';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
-import 'package:myapp/models/totp_account.dart';
-import 'package:myapp/providers/account_provider.dart';
-import 'package:myapp/utils/time_sync.dart';
+import 'package:mykeyvault/models/totp_account.dart';
+import 'package:mykeyvault/providers/account_provider.dart';
+import 'package:mykeyvault/utils/time_sync.dart';
 import 'package:otp/otp.dart';
 import 'package:provider/provider.dart';
 

@@ -1,4 +1,4 @@
-import 'package:myapp/models/totp_account.dart';
+import 'package:mykeyvault/models/totp_account.dart';
 import 'package:uuid/uuid.dart';
 
 class UriParser {

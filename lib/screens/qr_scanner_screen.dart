@@ -2,9 +2,9 @@ import 'dart:async';
 import 'dart:developer';
 import 'package:flutter/material.dart';
 import 'package:mobile_scanner/mobile_scanner.dart';
-import 'package:myapp/models/totp_account.dart';
-import 'package:myapp/providers/account_provider.dart';
-import 'package:myapp/utils/uri_parser.dart';
+import 'package:mykeyvault/models/totp_account.dart';
+import 'package:mykeyvault/providers/account_provider.dart';
+import 'package:mykeyvault/utils/uri_parser.dart';
 import 'package:provider/provider.dart';
 
 class QrScannerScreen extends StatefulWidget {

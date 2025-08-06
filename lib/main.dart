@@ -1,8 +1,8 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
-import 'package:myapp/providers/account_provider.dart';
-import 'package:myapp/screens/home_screen.dart'; // 将 MyHomePage 改名为 HomeScreen
-import 'package:myapp/utils/time_sync.dart';
+import 'package:mykeyvault/providers/account_provider.dart';
+import 'package:mykeyvault/screens/home_screen.dart'; // 将 MyHomePage 改名为 HomeScreen
+import 'package:mykeyvault/utils/time_sync.dart';
 
 void main() async {
   WidgetsFlutterBinding.ensureInitialized();
@@ -103,7 +103,7 @@ class MyApp extends StatelessWidget {
 
 
     return MaterialApp(
-      title: 'OneTimePass',
+      title: 'MyKeyVault',
       theme: lightTheme, // 使用浅色主题
       darkTheme: darkTheme, // 使用深色主题
       themeMode: ThemeMode.system, // 默认使用系统主题
