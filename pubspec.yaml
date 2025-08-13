@@ -45,6 +45,8 @@ dependencies:
   cupertino_icons: ^1.0.8
   freezed_annotation: ^3.1.0
   otp: ^3.1.4
+  local_auth: ^2.1.6
+  flutter_secure_storage: ^9.0.0
 
 dev_dependencies:
   flutter_test:
@@ -53,6 +55,7 @@ dev_dependencies:
   build_runner: ^2.4.6 # 或最新版本
   freezed: ^3.1.0
   json_serializable: ^6.7.1
+  mockito: ^5.4.2
 
 flutter:
   uses-material-design: true

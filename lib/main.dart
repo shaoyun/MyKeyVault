@@ -1,7 +1,11 @@
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:mykeyvault/providers/account_provider.dart';
-import 'package:mykeyvault/screens/home_screen.dart'; // 将 MyHomePage 改名为 HomeScreen
+import 'package:mykeyvault/providers/auth_provider.dart';
+import 'package:mykeyvault/screens/home_screen.dart';
+import 'package:mykeyvault/screens/settings_screen.dart';
+import 'package:mykeyvault/screens/onboarding_screen.dart';
+import 'package:mykeyvault/widgets/authentication_wrapper.dart';
 import 'package:mykeyvault/utils/time_sync.dart';
 
 void main() async {
@@ -11,11 +15,17 @@ void main() async {
   final accountProvider = AccountProvider();
   await accountProvider.loadAccounts();
   
+  // 初始化认证提供者
+  final authProvider = AuthProvider();
+  
   // 时间同步已简化为使用本机时间
   
   runApp(
-    ChangeNotifierProvider(
-      create: (context) => accountProvider,
+    MultiProvider(
+      providers: [
+        ChangeNotifierProvider(create: (context) => accountProvider),
+        ChangeNotifierProvider(create: (context) => authProvider),
+      ],
       child: const MyApp(),
     ),
   );
@@ -105,14 +115,27 @@ class MyApp extends StatelessWidget {
     );
 
 
-    return MaterialApp(
-      title: 'MyKeyVault',
-      theme: lightTheme, // 使用浅色主题
-      darkTheme: darkTheme, // 使用深色主题
-      themeMode: ThemeMode.system, // 默认使用系统主题
-      home: const HomeScreen(),
-      // 将路由定义移到 HomeScreen 内部或使用命名路由
-      // 推荐使用命名路由或 GoRouter 等路由管理方案
+    return Consumer<AuthProvider>(
+      builder: (context, authProvider, child) {
+        return MaterialApp(
+          title: 'MyKeyVault',
+          theme: lightTheme,
+          darkTheme: darkTheme,
+          themeMode: authProvider.config.themeMode, // 使用认证提供者的主题设置
+          home: const AuthenticationWrapper(
+            child: HomeScreen(),
+          ),
+          routes: {
+            '/home': (context) => const AuthenticationWrapper(
+              child: HomeScreen(),
+            ),
+            '/settings': (context) => const SettingsScreen(),
+            '/onboarding': (context) => const OnboardingScreen(),
+          },
+          // 将路由定义移到 HomeScreen 内部或使用命名路由
+          // 推荐使用命名路由或 GoRouter 等路由管理方案
+        );
+      },
     );
   }
 }

@@ -218,6 +218,16 @@ class _HomeScreenState extends State<HomeScreen> {
       appBar: AppBar(
         title: const Text('MyKeyVault'),
         actions: [
+          IconButton(
+            icon: Icon(
+              Icons.settings,
+              color: Theme.of(context).colorScheme.primary,
+            ),
+            onPressed: () {
+              Navigator.pushNamed(context, '/settings');
+            },
+            tooltip: '设置',
+          ),
           PopupMenuButton<String>(
             icon: Icon(
               Icons.more_vert,
