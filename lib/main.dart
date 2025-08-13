@@ -30,6 +30,8 @@ class MyApp extends StatelessWidget {
     final Color primarySeedColor = Color(0xFF1A237E); // 深蓝色
     final Color secondaryColor = Color(0xFF673AB7); // 紫色
     final Color lightGray = Color(0xFFE0E0E0); // 浅灰色
+    final Color softWhite = Color(0xFFF8F9FA); // 柔化的白色
+    final Color accentBlue = Color(0xFF5C6BC0); // 柔和的蓝色作为强调色
 
     final lightTheme = ThemeData(
       useMaterial3: true,
@@ -45,14 +47,15 @@ class MyApp extends StatelessWidget {
         onBackground: Colors.black87,
       ),
       appBarTheme: AppBarTheme(
-        backgroundColor: primarySeedColor,
-        foregroundColor: Colors.white,
-        titleTextStyle: TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold),
+        backgroundColor: softWhite,
+        foregroundColor: Colors.black87,
+        titleTextStyle: TextStyle(color: Colors.black87, fontSize: 20, fontWeight: FontWeight.bold),
+        elevation: 0.5,
       ),
-      floatingActionButtonTheme: FloatingActionButtonThemeData(
-        backgroundColor: secondaryColor,
-        foregroundColor: Colors.white,
-      ),
+      // floatingActionButtonTheme: FloatingActionButtonThemeData(
+      //   backgroundColor: accentBlue,
+      //   foregroundColor: Colors.white,
+      // ),
       cardColor: Colors.white,
       textTheme: TextTheme(
         bodyMedium: TextStyle(color: Colors.black87),

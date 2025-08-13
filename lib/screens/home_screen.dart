@@ -99,9 +99,20 @@ class _HomeScreenState extends State<HomeScreen> {
   }
 
   Future<void> _exportAccounts(BuildContext context) async {
-    final result =
-        await Provider.of<AccountProvider>(context, listen: false)
-            .exportAccounts();
+    final accountProvider = Provider.of<AccountProvider>(context, listen: false);
+    
+    // 检查是否有账户可导出
+    if (accountProvider.accounts.isEmpty) {
+      ScaffoldMessenger.of(context).showSnackBar(
+        const SnackBar(
+          content: Text('暂无账户可导出，请先添加账户'),
+          backgroundColor: Colors.orange,
+        ),
+      );
+      return;
+    }
+    
+    final result = await accountProvider.exportAccounts();
     if (result != null) {
       if (kIsWeb) {
         // Web平台：显示下载成功消息
@@ -208,29 +219,68 @@ class _HomeScreenState extends State<HomeScreen> {
         title: const Text('MyKeyVault'),
         actions: [
           PopupMenuButton<String>(
+            icon: Icon(
+              Icons.more_vert,
+              color: Theme.of(context).colorScheme.primary,
+            ),
             onSelected: (value) {
               if (value == 'import') {
                 _importAccounts(context);
               } else if (value == 'export') {
                 _exportAccounts(context);
+              } else if (value == 'scan_qr') {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const QrScannerScreen(),
+                  ),
+                );
+              } else if (value == 'manual_input') {
+                Navigator.push(
+                  context,
+                  MaterialPageRoute(
+                    builder: (context) => const ManualInputScreen(),
+                  ),
+                );
               }
             },
             itemBuilder: (BuildContext context) => <PopupMenuEntry<String>>[
               const PopupMenuItem<String>(
+                value: 'scan_qr',
+                child: Row(
+                  children: [
+                    Icon(Icons.qr_code_scanner, color: Colors.blue),
+                    SizedBox(width: 12),
+                    Text('扫描二维码'),
+                  ],
+                ),
+              ),
+              const PopupMenuItem<String>(
+                value: 'manual_input',
+                child: Row(
+                  children: [
+                    Icon(Icons.edit, color: Colors.green),
+                    SizedBox(width: 12),
+                    Text('手动输入'),
+                  ],
+                ),
+              ),
+              const PopupMenuDivider(),
+              PopupMenuItem<String>(
                 value: 'import',
                 child: Row(
                   children: [
-                    Icon(Icons.file_download),
+                    Icon(Icons.file_download, color: Theme.of(context).colorScheme.primary),
                     SizedBox(width: 12),
                     Text('导入账户'),
                   ],
                 ),
               ),
-              const PopupMenuItem<String>(
+              PopupMenuItem<String>(
                 value: 'export',
                 child: Row(
                   children: [
-                    Icon(Icons.file_upload),
+                    Icon(Icons.file_upload, color: Theme.of(context).colorScheme.primary),
                     SizedBox(width: 12),
                     Text('导出账户'),
                   ],
@@ -284,11 +334,65 @@ class _HomeScreenState extends State<HomeScreen> {
           // 账户列表
           Expanded(
             child: accountProvider.accounts.isEmpty
-                ? const Center(
-                    child: Text(
-                      'No accounts found. Add one to get started.',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(fontSize: 18, color: Colors.grey),
+                ? Center(
+                    child: Column(
+                      mainAxisAlignment: MainAxisAlignment.center,
+                      children: [
+                        Icon(
+                          Icons.security,
+                          size: 80,
+                          color: Colors.grey[400],
+                        ),
+                        const SizedBox(height: 24),
+                        const Text(
+                          'No accounts found.',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(fontSize: 20, fontWeight: FontWeight.w500),
+                        ),
+                        const SizedBox(height: 8),
+                        Text(
+                          'Add your first account to get started.',
+                          textAlign: TextAlign.center,
+                          style: TextStyle(fontSize: 16, color: Colors.grey[600]),
+                        ),
+                        const SizedBox(height: 32),
+                        Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            ElevatedButton.icon(
+                              onPressed: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => const QrScannerScreen(),
+                                  ),
+                                );
+                              },
+                              icon: const Icon(Icons.qr_code_scanner),
+                              label: const Text('扫描二维码'),
+                              style: ElevatedButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                              ),
+                            ),
+                            const SizedBox(width: 16),
+                            ElevatedButton.icon(
+                              onPressed: () {
+                                Navigator.push(
+                                  context,
+                                  MaterialPageRoute(
+                                    builder: (context) => const ManualInputScreen(),
+                                  ),
+                                );
+                              },
+                              icon: const Icon(Icons.edit),
+                              label: const Text('手动输入'),
+                              style: ElevatedButton.styleFrom(
+                                padding: const EdgeInsets.symmetric(horizontal: 24, vertical: 12),
+                              ),
+                            ),
+                          ],
+                        ),
+                      ],
                     ),
                   )
                 : filteredAccounts.isEmpty && _searchQuery.isNotEmpty
@@ -329,10 +433,6 @@ class _HomeScreenState extends State<HomeScreen> {
                       ),
           ),
         ],
-      ),
-      floatingActionButton: FloatingActionButton(
-        onPressed: () => _showAddAccountOptions(context),
-        child: const Icon(Icons.add),
       ),
     );
   }
