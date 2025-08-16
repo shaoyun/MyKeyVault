@@ -71,19 +71,23 @@ class _AuthConfigWidgetState extends State<AuthConfigWidget> {
         value: isEnabled,
         onChanged: canEnable ? (value) {
           if (value) {
-            authProvider.enableBiometric();
+            _enableBiometricWithPermissionCheck(context, authProvider);
           } else {
             authProvider.disableBiometric();
           }
-        } : null,
+        } : !canEnable && !capability.isDeviceSupported ? () => _showBiometricHelpDialog(context) : null,
       ),
-      onTap: canEnable ? () {
-        if (isEnabled) {
-          authProvider.disableBiometric();
+      onTap: () {
+        if (canEnable) {
+          if (isEnabled) {
+            authProvider.disableBiometric();
+          } else {
+            _enableBiometricWithPermissionCheck(context, authProvider);
+          }
         } else {
-          authProvider.enableBiometric();
+          _showBiometricHelpDialog(context);
         }
-      } : null,
+      },
     );
   }
 
@@ -393,6 +397,235 @@ class _AuthConfigWidgetState extends State<AuthConfigWidget> {
             ),
           ],
         ),
+      ),
+    );
+  }
+
+  Future<void> _enableBiometricWithPermissionCheck(BuildContext context, AuthProvider authProvider) async {
+    final capability = authProvider.biometricCapability;
+    
+    // 检查设备支持
+    if (!capability.isDeviceSupported) {
+      _showBiometricUnsupportedDialog(context);
+      return;
+    }
+    
+    // 检查系统权限
+    if (!capability.isAvailable) {
+      _showBiometricPermissionDialog(context);
+      return;
+    }
+    
+    // 检查是否已设置生物识别
+    if (capability.availableTypes.isEmpty) {
+      _showBiometricSetupDialog(context);
+      return;
+    }
+    
+    // 尝试启用生物识别并进行一次验证确认
+    try {
+      await authProvider.enableBiometric();
+      
+      // 启用后立即进行一次测试验证
+      final testResult = await authProvider.authenticateWithBiometric();
+      if (!testResult && context.mounted) {
+        // 如果测试失败，显示错误并禁用
+        await authProvider.disableBiometric();
+        _showBiometricTestFailedDialog(context, authProvider.errorMessage);
+      } else if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          const SnackBar(
+            content: Text('生物识别认证已启用'),
+            backgroundColor: Colors.green,
+          ),
+        );
+      }
+    } catch (e) {
+      if (context.mounted) {
+        ScaffoldMessenger.of(context).showSnackBar(
+          SnackBar(
+            content: Text('启用失败: $e'),
+            backgroundColor: Colors.red,
+          ),
+        );
+      }
+    }
+  }
+
+  void _showBiometricHelpDialog(BuildContext context) {
+    final authProvider = context.read<AuthProvider>();
+    final capability = authProvider.biometricCapability;
+    
+    String title;
+    String content;
+    List<Widget> actions = [];
+    
+    if (!capability.isDeviceSupported) {
+      title = '设备不支持';
+      content = '您的设备不支持生物识别认证功能。\n\n请使用密码认证来保护您的应用。';
+      actions = [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('了解'),
+        ),
+      ];
+    } else if (!capability.isAvailable) {
+      title = '权限未授予';
+      content = '应用需要生物识别权限才能启用此功能。\n\n请在系统设置中授予MyKeyVault生物识别权限。';
+      actions = [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('取消'),
+        ),
+        TextButton(
+          onPressed: () {
+            Navigator.of(context).pop();
+            // TODO: 打开应用设置页面
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('请在"设置 > 应用 > MyKeyVault > 权限"中授予生物识别权限'),
+                duration: Duration(seconds: 5),
+              ),
+            );
+          },
+          child: const Text('去设置'),
+        ),
+      ];
+    } else if (capability.availableTypes.isEmpty) {
+      title = '未设置生物识别';
+      content = '您的设备支持生物识别，但尚未设置。\n\n请先在系统设置中设置指纹或面部识别。';
+      actions = [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('取消'),
+        ),
+        TextButton(
+          onPressed: () {
+            Navigator.of(context).pop();
+            ScaffoldMessenger.of(context).showSnackBar(
+              const SnackBar(
+                content: Text('请在"设置 > 安全 > 生物识别"中设置指纹或面部识别'),
+                duration: Duration(seconds: 5),
+              ),
+            );
+          },
+          child: const Text('去设置'),
+        ),
+      ];
+    } else {
+      title = '生物识别帮助';
+      content = '如果生物识别无法正常工作，请检查：\n\n1. 权限是否已授予\n2. 指纹或面部识别是否已设置\n3. 传感器是否干净\n4. 重启应用后再试';
+      actions = [
+        TextButton(
+          onPressed: () => Navigator.of(context).pop(),
+          child: const Text('了解'),
+        ),
+      ];
+    }
+    
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: Row(
+          children: [
+            Icon(
+              Icons.help_outline,
+              color: Theme.of(context).colorScheme.primary,
+            ),
+            const SizedBox(width: 8),
+            Text(title),
+          ],
+        ),
+        content: Text(content),
+        actions: actions,
+      ),
+    );
+  }
+
+  void _showBiometricUnsupportedDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('设备不支持'),
+        content: const Text('您的设备不支持生物识别认证功能。请使用密码认证来保护您的应用。'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('了解'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showBiometricPermissionDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('需要权限'),
+        content: const Text('启用生物识别认证需要相应的系统权限。\n\n请在系统设置中授予MyKeyVault生物识别权限。'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('取消'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('请在"设置 > 应用 > MyKeyVault > 权限"中授予生物识别权限'),
+                  duration: Duration(seconds: 5),
+                ),
+              );
+            },
+            child: const Text('去设置'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showBiometricSetupDialog(BuildContext context) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('请设置生物识别'),
+        content: const Text('您的设备支持生物识别，但尚未设置。\n\n请先在系统设置中设置指纹或面部识别，然后再启用此功能。'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('取消'),
+          ),
+          TextButton(
+            onPressed: () {
+              Navigator.of(context).pop();
+              ScaffoldMessenger.of(context).showSnackBar(
+                const SnackBar(
+                  content: Text('请在"设置 > 安全 > 生物识别"中设置指纹或面部识别'),
+                  duration: Duration(seconds: 5),
+                ),
+              );
+            },
+            child: const Text('去设置'),
+          ),
+        ],
+      ),
+    );
+  }
+
+  void _showBiometricTestFailedDialog(BuildContext context, String? errorMessage) {
+    showDialog(
+      context: context,
+      builder: (context) => AlertDialog(
+        title: const Text('验证失败'),
+        content: Text('生物识别测试验证失败。\n\n错误信息：${errorMessage ?? "未知错误"}\n\n请检查生物识别设置是否正确。'),
+        actions: [
+          TextButton(
+            onPressed: () => Navigator.of(context).pop(),
+            child: const Text('了解'),
+          ),
+        ],
       ),
     );
   }

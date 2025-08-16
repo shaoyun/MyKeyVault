@@ -79,9 +79,13 @@ class _BiometricAuthWidgetState extends State<BiometricAuthWidget>
         final capability = authProvider.biometricCapability;
         final theme = Theme.of(context);
         
-        return Column(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
+        return Container(
+          width: double.infinity,
+          padding: const EdgeInsets.symmetric(horizontal: 24.0),
+          child: Column(
+            mainAxisAlignment: MainAxisAlignment.center,
+            crossAxisAlignment: CrossAxisAlignment.center,
+            children: [
             // 生物识别图标
             AnimatedBuilder(
               animation: _scaleAnimation,
@@ -225,7 +229,7 @@ class _BiometricAuthWidgetState extends State<BiometricAuthWidget>
                 ),
               ),
             ],
-          ],
+          ),
         );
       },
     );

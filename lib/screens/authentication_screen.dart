@@ -1,3 +1,4 @@
+import 'dart:async';
 import 'package:flutter/material.dart';
 import 'package:provider/provider.dart';
 import 'package:mykeyvault/models/models.dart';
@@ -21,6 +22,8 @@ class _AuthenticationScreenState extends State<AuthenticationScreen>
   
   AuthMethod _currentAuthMethod = AuthMethod.none;
   bool _isInitialized = false;
+  Timer? _countdownTimer;
+  int _remainingSeconds = 0;
 
   @override
   void initState() {
@@ -57,6 +60,7 @@ class _AuthenticationScreenState extends State<AuthenticationScreen>
 
   @override
   void dispose() {
+    _countdownTimer?.cancel();
     _fadeController.dispose();
     _slideController.dispose();
     super.dispose();
@@ -103,6 +107,28 @@ class _AuthenticationScreenState extends State<AuthenticationScreen>
   void _onAuthError() {
     // 认证失败，可以显示错误提示或震动反馈
     // 错误信息已经在AuthProvider中处理
+  }
+
+  void _startCountdownTimer(Duration duration) {
+    _countdownTimer?.cancel();
+    _remainingSeconds = duration.inSeconds;
+    
+    _countdownTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      setState(() {
+        _remainingSeconds--;
+      });
+      
+      if (_remainingSeconds <= 0) {
+        timer.cancel();
+        // 锁定时间结束，重新检查状态
+        _initializeAuth();
+      }
+    });
+  }
+
+  void _stopCountdownTimer() {
+    _countdownTimer?.cancel();
+    _remainingSeconds = 0;
   }
 
   @override
@@ -307,6 +333,14 @@ class _AuthenticationScreenState extends State<AuthenticationScreen>
     final theme = Theme.of(context);
     final lockoutRemaining = authProvider.lockoutRemaining;
     
+    // 启动倒计时定时器
+    if (lockoutRemaining != null && _countdownTimer == null) {
+      _startCountdownTimer(lockoutRemaining);
+    }
+    
+    // 使用动态倒计时或者静态剩余时间
+    final displaySeconds = _remainingSeconds > 0 ? _remainingSeconds : (lockoutRemaining?.inSeconds ?? 0);
+    
     return Center(
       child: Padding(
         padding: const EdgeInsets.all(32.0),
@@ -332,8 +366,8 @@ class _AuthenticationScreenState extends State<AuthenticationScreen>
             const SizedBox(height: 16),
             
             Text(
-              lockoutRemaining != null
-                  ? '由于多次认证失败，账户已被锁定\n请等待 ${lockoutRemaining.inSeconds} 秒后重试'
+              displaySeconds > 0
+                  ? '由于多次认证失败，账户已被锁定\n请等待 $displaySeconds 秒后重试'
                   : '由于多次认证失败，账户已被锁定\n请稍后重试',
               style: theme.textTheme.bodyLarge?.copyWith(
                 color: theme.colorScheme.onSurface.withOpacity(0.7),
@@ -341,7 +375,7 @@ class _AuthenticationScreenState extends State<AuthenticationScreen>
               textAlign: TextAlign.center,
             ),
             
-            if (lockoutRemaining != null) ...[
+            if (displaySeconds > 0) ...[
               const SizedBox(height: 24),
               
               // 倒计时显示
@@ -352,7 +386,7 @@ class _AuthenticationScreenState extends State<AuthenticationScreen>
                   borderRadius: BorderRadius.circular(12),
                 ),
                 child: Text(
-                  '${lockoutRemaining.inSeconds}',
+                  '$displaySeconds',
                   style: theme.textTheme.headlineLarge?.copyWith(
                     color: theme.colorScheme.error,
                     fontWeight: FontWeight.bold,

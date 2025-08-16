@@ -114,23 +114,12 @@ class _PasswordAuthWidgetState extends State<PasswordAuthWidget>
           builder: (context, child) {
             return Transform.translate(
               offset: Offset(_shakeAnimation.value, 0),
-              child: SizedBox(
-                width: double.infinity,
-                height: double.infinity,
-                child: SingleChildScrollView(
-                  child: ConstrainedBox(
-                    constraints: BoxConstraints(
-                      minHeight: MediaQuery.of(context).size.height - 
-                                 MediaQuery.of(context).padding.top - 
-                                 MediaQuery.of(context).padding.bottom,
-                      minWidth: double.infinity,
-                    ),
-                    child: Padding(
-                      padding: const EdgeInsets.symmetric(horizontal: 24.0),
-                      child: Column(
-                        mainAxisAlignment: MainAxisAlignment.center,
-                        crossAxisAlignment: CrossAxisAlignment.center,
-                        children: [
+              child: Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 24.0),
+                child: Column(
+                  mainAxisAlignment: MainAxisAlignment.center,
+                  crossAxisAlignment: CrossAxisAlignment.center,
+                  children: [
                   // 密码图标
                   Container(
                     width: 100,
@@ -354,18 +343,12 @@ class _PasswordAuthWidgetState extends State<PasswordAuthWidget>
                         ],
                       ),
                     ),
-                        ],
-                      ],
-                    ),
-                  ),
+                  ],
                 ),
               ),
-            ),
-          );
+            );
         },
       );
-      },
-    );
   }
 
   String _getPromptText(AuthError? error, bool isLocked, Duration? lockoutRemaining) {
