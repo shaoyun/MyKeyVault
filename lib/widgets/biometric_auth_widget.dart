@@ -86,148 +86,149 @@ class _BiometricAuthWidgetState extends State<BiometricAuthWidget>
             mainAxisAlignment: MainAxisAlignment.center,
             crossAxisAlignment: CrossAxisAlignment.center,
             children: [
-            // 生物识别图标
-            AnimatedBuilder(
-              animation: _scaleAnimation,
-              builder: (context, child) {
-                return Transform.scale(
-                  scale: _scaleAnimation.value,
-                  child: Container(
-                    width: 120,
-                    height: 120,
-                    decoration: BoxDecoration(
-                      shape: BoxShape.circle,
-                      color: theme.colorScheme.primary.withOpacity(0.1),
-                      border: Border.all(
-                        color: theme.colorScheme.primary,
-                        width: 2,
-                      ),
-                    ),
-                    child: Icon(
-                      _getBiometricIcon(capability),
-                      size: 60,
-                      color: theme.colorScheme.primary,
-                    ),
-                  ),
-                );
-              },
-            ),
-            
-            const SizedBox(height: 32),
-            
-            // 标题
-            Text(
-              '生物识别认证',
-              style: theme.textTheme.headlineSmall?.copyWith(
-                fontWeight: FontWeight.bold,
-              ),
-            ),
-            
-            const SizedBox(height: 16),
-            
-            // 提示文本
-            Text(
-              _getPromptText(capability, authProvider.lastError),
-              style: theme.textTheme.bodyLarge?.copyWith(
-                color: authProvider.lastError != null 
-                    ? theme.colorScheme.error 
-                    : theme.colorScheme.onSurface.withOpacity(0.7),
-              ),
-              textAlign: TextAlign.center,
-            ),
-            
-            const SizedBox(height: 32),
-            
-            // 认证按钮
-            if (!_isAuthenticating) ...[
-              ElevatedButton.icon(
-                onPressed: capability.isUsable ? _authenticate : null,
-                icon: Icon(_getBiometricIcon(capability)),
-                label: Text('使用${capability.primaryBiometricName}'),
-                style: ElevatedButton.styleFrom(
-                  padding: const EdgeInsets.symmetric(
-                    horizontal: 32,
-                    vertical: 16,
-                  ),
-                ),
-              ),
-              
-              const SizedBox(height: 16),
-              
-              // 切换到密码认证
-              if (widget.onSwitchToPassword != null && authProvider.canUsePassword)
-                TextButton.icon(
-                  onPressed: widget.onSwitchToPassword,
-                  icon: const Icon(Icons.password),
-                  label: const Text('使用密码'),
-                ),
-            ] else ...[
-              // 认证中的加载指示器
-              const CircularProgressIndicator(),
-              const SizedBox(height: 16),
-              Text(
-                '正在验证...',
-                style: theme.textTheme.bodyMedium?.copyWith(
-                  color: theme.colorScheme.onSurface.withOpacity(0.7),
-                ),
-              ),
-            ],
-            
-            // 错误信息
-            if (authProvider.lastError != null) ...[
-              const SizedBox(height: 16),
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.errorContainer,
-                  borderRadius: BorderRadius.circular(8),
-                ),
-                child: Row(
-                  children: [
-                    Icon(
-                      Icons.error_outline,
-                      color: theme.colorScheme.error,
-                    ),
-                    const SizedBox(width: 8),
-                    Expanded(
-                      child: Text(
-                        authProvider.errorMessage ?? '认证失败',
-                        style: TextStyle(
-                          color: theme.colorScheme.error,
+              // 生物识别图标
+              AnimatedBuilder(
+                animation: _scaleAnimation,
+                builder: (context, child) {
+                  return Transform.scale(
+                    scale: _scaleAnimation.value,
+                    child: Container(
+                      width: 120,
+                      height: 120,
+                      decoration: BoxDecoration(
+                        shape: BoxShape.circle,
+                        color: theme.colorScheme.primary.withOpacity(0.1),
+                        border: Border.all(
+                          color: theme.colorScheme.primary,
+                          width: 2,
                         ),
                       ),
+                      child: Icon(
+                        _getBiometricIcon(capability),
+                        size: 60,
+                        color: theme.colorScheme.primary,
+                      ),
                     ),
-                  ],
+                  );
+                },
+              ),
+              
+              const SizedBox(height: 32),
+              
+              // 标题
+              Text(
+                '生物识别认证',
+                style: theme.textTheme.headlineSmall?.copyWith(
+                  fontWeight: FontWeight.bold,
                 ),
               ),
-            ],
-            
-            // 设备不支持时的提示
-            if (!capability.isDeviceSupported) ...[
+              
               const SizedBox(height: 16),
-              Container(
-                padding: const EdgeInsets.all(16),
-                decoration: BoxDecoration(
-                  color: theme.colorScheme.surfaceVariant,
-                  borderRadius: BorderRadius.circular(8),
+              
+              // 提示文本
+              Text(
+                _getPromptText(capability, authProvider.lastError),
+                style: theme.textTheme.bodyLarge?.copyWith(
+                  color: authProvider.lastError != null 
+                      ? theme.colorScheme.error 
+                      : theme.colorScheme.onSurface.withOpacity(0.7),
                 ),
-                child: Column(
-                  children: [
-                    Icon(
-                      Icons.info_outline,
-                      color: theme.colorScheme.onSurfaceVariant,
+                textAlign: TextAlign.center,
+              ),
+              
+              const SizedBox(height: 32),
+              
+              // 认证按钮
+              if (!_isAuthenticating) ...[
+                ElevatedButton.icon(
+                  onPressed: capability.isUsable ? _authenticate : null,
+                  icon: Icon(_getBiometricIcon(capability)),
+                  label: Text('使用${capability.primaryBiometricName}'),
+                  style: ElevatedButton.styleFrom(
+                    padding: const EdgeInsets.symmetric(
+                      horizontal: 32,
+                      vertical: 16,
                     ),
-                    const SizedBox(height: 8),
-                    Text(
-                      '您的设备不支持生物识别认证',
-                      style: TextStyle(
+                  ),
+                ),
+                
+                const SizedBox(height: 16),
+                
+                // 切换到密码认证
+                if (widget.onSwitchToPassword != null && authProvider.canUsePassword)
+                  TextButton.icon(
+                    onPressed: widget.onSwitchToPassword,
+                    icon: const Icon(Icons.password),
+                    label: const Text('使用密码'),
+                  ),
+              ] else ...[
+                // 认证中的加载指示器
+                const CircularProgressIndicator(),
+                const SizedBox(height: 16),
+                Text(
+                  '正在验证...',
+                  style: theme.textTheme.bodyMedium?.copyWith(
+                    color: theme.colorScheme.onSurface.withOpacity(0.7),
+                  ),
+                ),
+              ],
+              
+              // 错误信息
+              if (authProvider.lastError != null) ...[
+                const SizedBox(height: 16),
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.errorContainer,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Row(
+                    children: [
+                      Icon(
+                        Icons.error_outline,
+                        color: theme.colorScheme.error,
+                      ),
+                      const SizedBox(width: 8),
+                      Expanded(
+                        child: Text(
+                          authProvider.errorMessage ?? '认证失败',
+                          style: TextStyle(
+                            color: theme.colorScheme.error,
+                          ),
+                        ),
+                      ),
+                    ],
+                  ),
+                ),
+              ],
+              
+              // 设备不支持时的提示
+              if (!capability.isDeviceSupported) ...[
+                const SizedBox(height: 16),
+                Container(
+                  padding: const EdgeInsets.all(16),
+                  decoration: BoxDecoration(
+                    color: theme.colorScheme.surfaceVariant,
+                    borderRadius: BorderRadius.circular(8),
+                  ),
+                  child: Column(
+                    children: [
+                      Icon(
+                        Icons.info_outline,
                         color: theme.colorScheme.onSurfaceVariant,
                       ),
-                      textAlign: TextAlign.center,
-                    ),
-                  ],
+                      const SizedBox(height: 8),
+                      Text(
+                        '您的设备不支持生物识别认证',
+                        style: TextStyle(
+                          color: theme.colorScheme.onSurfaceVariant,
+                        ),
+                        textAlign: TextAlign.center,
+                      ),
+                    ],
+                  ),
                 ),
-              ),
+              ],
             ],
           ),
         );

@@ -12,11 +12,13 @@ class AuthConfigWidget extends StatefulWidget {
 
 class _AuthConfigWidgetState extends State<AuthConfigWidget> {
   final TextEditingController _passwordController = TextEditingController();
+  final TextEditingController _confirmPasswordController = TextEditingController();
   bool _isSettingPassword = false;
 
   @override
   void dispose() {
     _passwordController.dispose();
+    _confirmPasswordController.dispose();
     super.dispose();
   }
 
@@ -69,13 +71,13 @@ class _AuthConfigWidgetState extends State<AuthConfigWidget> {
       subtitle: Text(_getBiometricSubtitle(capability, isEnabled)),
       trailing: Switch(
         value: isEnabled,
-        onChanged: canEnable ? (value) {
+        onChanged: canEnable ? (bool value) {
           if (value) {
             _enableBiometricWithPermissionCheck(context, authProvider);
           } else {
             authProvider.disableBiometric();
           }
-        } : !canEnable && !capability.isDeviceSupported ? () => _showBiometricHelpDialog(context) : null,
+        } : (!canEnable && !capability.isDeviceSupported) ? (_) => _showBiometricHelpDialog(context) : null,
       ),
       onTap: () {
         if (canEnable) {
@@ -199,92 +201,125 @@ class _AuthConfigWidgetState extends State<AuthConfigWidget> {
 
   void _showPasswordDialog(BuildContext context, AuthProvider authProvider, bool isEdit) {
     _passwordController.clear();
+    _confirmPasswordController.clear();
     
     showDialog(
       context: context,
       builder: (context) => StatefulBuilder(
-        builder: (context, setState) => AlertDialog(
-          title: Text(isEdit ? '修改密码' : '设置密码'),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                isEdit ? '请输入新的6位数字密码' : '请设置6位数字密码',
-                style: Theme.of(context).textTheme.bodyMedium,
-              ),
-              const SizedBox(height: 16),
-              TextField(
-                controller: _passwordController,
-                keyboardType: TextInputType.number,
-                maxLength: 6,
-                obscureText: true,
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  fontSize: 24,
-                  letterSpacing: 8,
+        builder: (context, setState) {
+          final passwordsMatch = _passwordController.text == _confirmPasswordController.text;
+          final canSubmit = _passwordController.text.length == 6 && 
+                           _confirmPasswordController.text.length == 6 && 
+                           passwordsMatch;
+          
+          return AlertDialog(
+            title: Text(isEdit ? '修改密码' : '设置密码'),
+            content: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                Text(
+                  isEdit ? '请输入新的6位数字密码' : '请设置6位数字密码',
+                  style: Theme.of(context).textTheme.bodyMedium,
                 ),
-                decoration: const InputDecoration(
-                  hintText: '••••••',
-                  counterText: '',
-                  border: OutlineInputBorder(),
-                ),
-                onChanged: (value) {
-                  setState(() {});
-                },
-              ),
-              if (_isSettingPassword) ...[
                 const SizedBox(height: 16),
-                const CircularProgressIndicator(),
+                TextField(
+                  controller: _passwordController,
+                  keyboardType: TextInputType.number,
+                  maxLength: 6,
+                  obscureText: true,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    fontSize: 24,
+                    letterSpacing: 8,
+                  ),
+                  decoration: const InputDecoration(
+                    labelText: '密码',
+                    hintText: '••••••',
+                    counterText: '',
+                    border: OutlineInputBorder(),
+                  ),
+                  onChanged: (value) {
+                    setState(() {});
+                  },
+                ),
+                const SizedBox(height: 16),
+                TextField(
+                  controller: _confirmPasswordController,
+                  keyboardType: TextInputType.number,
+                  maxLength: 6,
+                  obscureText: true,
+                  textAlign: TextAlign.center,
+                  style: const TextStyle(
+                    fontSize: 24,
+                    letterSpacing: 8,
+                  ),
+                  decoration: InputDecoration(
+                    labelText: '确认密码',
+                    hintText: '••••••',
+                    counterText: '',
+                    border: OutlineInputBorder(),
+                    errorText: _confirmPasswordController.text.isNotEmpty && !passwordsMatch
+                        ? '密码不匹配'
+                        : null,
+                  ),
+                  onChanged: (value) {
+                    setState(() {});
+                  },
+                ),
+                if (_isSettingPassword) ...[
+                  const SizedBox(height: 16),
+                  const CircularProgressIndicator(),
+                ],
               ],
+            ),
+            actions: [
+              TextButton(
+                onPressed: _isSettingPassword ? null : () {
+                  Navigator.of(context).pop();
+                },
+                child: const Text('取消'),
+              ),
+              TextButton(
+                onPressed: _isSettingPassword || !canSubmit
+                    ? null 
+                    : () async {
+                  setState(() {
+                    _isSettingPassword = true;
+                  });
+                  
+                  try {
+                    await authProvider.setPassword(_passwordController.text);
+                    if (context.mounted) {
+                      Navigator.of(context).pop();
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text(isEdit ? '密码已修改' : '密码已设置'),
+                          backgroundColor: Colors.green,
+                        ),
+                      );
+                    }
+                  } catch (e) {
+                    if (context.mounted) {
+                      ScaffoldMessenger.of(context).showSnackBar(
+                        SnackBar(
+                          content: Text('设置失败: $e'),
+                          backgroundColor: Colors.red,
+                        ),
+                      );
+                    }
+                  } finally {
+                    if (mounted) {
+                      setState(() {
+                        _isSettingPassword = false;
+                      });
+                    }
+                  }
+                },
+                child: Text(isEdit ? '修改' : '设置'),
+              ),
             ],
-          ),
-          actions: [
-            TextButton(
-              onPressed: _isSettingPassword ? null : () {
-                Navigator.of(context).pop();
-              },
-              child: const Text('取消'),
-            ),
-            TextButton(
-              onPressed: _isSettingPassword || _passwordController.text.length != 6 
-                  ? null 
-                  : () async {
-                setState(() {
-                  _isSettingPassword = true;
-                });
-                
-                try {
-                  await authProvider.setPassword(_passwordController.text);
-                  if (context.mounted) {
-                    Navigator.of(context).pop();
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text(isEdit ? '密码已修改' : '密码已设置'),
-                        backgroundColor: Colors.green,
-                      ),
-                    );
-                  }
-                } catch (e) {
-                  if (context.mounted) {
-                    ScaffoldMessenger.of(context).showSnackBar(
-                      SnackBar(
-                        content: Text('设置失败: $e'),
-                        backgroundColor: Colors.red,
-                      ),
-                    );
-                  }
-                } finally {
-                  if (mounted) {
-                    setState(() {
-                      _isSettingPassword = false;
-                    });
-                  }
-                }
-              },
-              child: Text(isEdit ? '修改' : '设置'),
-            ),
-          ],
-        ),
+          );
+        },
       ),
     );
   }
